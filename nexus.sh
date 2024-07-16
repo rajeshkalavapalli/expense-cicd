@@ -97,8 +97,10 @@ EOF
 fi
 
 ## Setting Nexus startup
-unlink /etc/init.d/nexus &>/dev/null
-ln -s /home/nexus/latest-unix/bin/nexus /etc/init.d/nexus
+if [ ! -d "/home/nexus/latest-unix/bin/" ]; then
+    mkdir -p /home/nexus/latest-unix/bin/
+fi
+
 echo "run_as_user=nexus" >/home/nexus/latest-unix/bin/nexus.rc
 
 # Creating a systemd service file for Nexus
@@ -127,6 +129,6 @@ if [ $? -eq 0 ]; then
     success "Nexus Service Started Successfully"
 else
     error "Starting Nexus Service Failed"
+    systemctl status nexus
+    journalctl -xeu nexus.service
 fi
-
-
