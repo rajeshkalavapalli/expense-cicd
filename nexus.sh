@@ -1,7 +1,36 @@
 #!/bin/bash
 
-## Source Common Functions
-# source /tmp/labautomation/dry/common-functions.sh
+## Common Functions
+CheckRoot() {
+    if [ "$EUID" -ne 0 ]; then
+        echo "Please run as root"
+        exit 1
+    fi
+}
+
+CheckSELinux() {
+    if [ "$(getenforce)" != "Disabled" ]; then
+        echo "SELINUX is enabled. Disabling it..."
+        setenforce 0
+    fi
+}
+
+CheckFirewall() {
+    systemctl status firewalld &>/dev/null
+    if [ $? -eq 0 ]; then
+        echo "Firewall is running. Stopping it..."
+        systemctl stop firewalld
+    fi
+}
+
+success() {
+    echo -e "\e[32m✓  $1\e[0m"
+}
+
+error() {
+    echo -e "\e[31m✗  $1\e[0m"
+    exit 1
+}
 
 ## Checking Root User or not.
 CheckRoot
@@ -20,7 +49,6 @@ if [ $? -ne 0 ]; then
         success "JAVA Installed Successfully"
     else
         error "JAVA Installation Failure!"
-        exit 1
     fi
 else
     success "Java already Installed"
@@ -30,14 +58,12 @@ fi
 yum install https://kojipkgs.fedoraproject.org/packages/python-html2text/2016.9.19/1.el7/noarch/python2-html2text-2016.9.19-1.el7.noarch.rpm -y &>/dev/null
 if [ $? -ne 0 ]; then
     error "Failed to install python-html2text"
-    exit 1
 fi
 
 ## Fetching the latest Nexus download URL
 URL=$(curl -L -s https://help.sonatype.com/display/NXRM3/Download+Archives+-+Repository+Manager+3 | html2text | grep -Eo 'https://download.sonatype.com/nexus/3/[^"]+unix.tar.gz' | head -1)
 if [ -z "$URL" ]; then
     error "Failed to fetch the latest Nexus download URL"
-    exit 1
 fi
 
 ## Downloading Nexus
@@ -49,7 +75,6 @@ if [ $? -eq 0 ]; then
     success "NEXUS Downloaded Successfully"
 else
     error "NEXUS Downloading Failure"
-    exit 1
 fi
 
 ## Adding Nexus User
@@ -60,7 +85,6 @@ if [ $? -ne 0 ]; then
         success "Added NEXUS User Successfully"
     else
         error "Adding NEXUS User Failure"
-        exit 1
     fi
 fi
 
@@ -74,25 +98,8 @@ EOF
         success "Extracted NEXUS Successfully"
     else
         error "Extracting NEXUS Failed"
-        exit 1
     fi
 fi
 
 ## Setting Nexus startup
-unlink /etc/init.d/nexus &>/dev/null
-ln -s /home/nexus/$NEXUSDIR/bin/nexus /etc/init.d/nexus
-echo "run_as_user=nexus" >/home/nexus/$NEXUSDIR/bin/nexus.rc
-CONFIG_FILE=$(find /home/nexus/ -name nexus-default.properties)
-sed -i -e '/nexus.scripts.allowCreation/ d' $CONFIG_FILE
-sed -i -e '$ a nexus.scripts.allowCreation=true' $CONFIG_FILE
-pip3 install nexus3-cli &>/tmp/nexus-install.log
-
-success "Updating System Configuration"
-systemctl enable nexus &>/dev/null
-systemctl start nexus
-if [ $? -eq 0 ]; then
-    success "Starting Nexus Service"
-else
-    error "Starting Nexus Failed"
-    exit 1
-fi
+unlink /etc
