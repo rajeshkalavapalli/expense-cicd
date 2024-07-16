@@ -44,7 +44,7 @@ CheckFirewall
 which java &>/dev/null
 if [ $? -ne 0 ]; then
     ## Downloading and Installing Java
-    yum install java wget -y &>/dev/null
+    yum install java-1.8.0-openjdk wget -y &>/dev/null
     if [ $? -eq 0 ]; then
         success "JAVA Installed Successfully"
     else
@@ -55,14 +55,22 @@ else
 fi
 
 ## Fetching the latest Nexus download URL
-URL="https://download.sonatype.com/nexus/3/nexus-3.64.0-04-unix.tar.gz"
+URL="https://download.sonatype.com/nexus/3/latest-unix.tar.gz"
 NEXUSFILE=$(basename $URL)
 NEXUSDIR=$(echo $NEXUSFILE | sed -e 's/-unix.tar.gz//')
 NEXUSFILE="/opt/$NEXUSFILE"
-wget $URL -O $NEXUSFILE &>/dev/null
+
+# Debugging: Print URL and Nexus file details
+echo "Nexus download URL: $URL"
+echo "Nexus file: $NEXUSFILE"
+
+wget $URL -O $NEXUSFILE
 if [ $? -eq 0 ]; then
     success "NEXUS Downloaded Successfully"
 else
+    # Debugging: Print wget output for further analysis
+    echo "wget output:"
+    wget $URL -O $NEXUSFILE
     error "NEXUS Downloading Failure"
 fi
 
@@ -94,17 +102,32 @@ fi
 unlink /etc/init.d/nexus &>/dev/null
 ln -s /home/nexus/$NEXUSDIR/bin/nexus /etc/init.d/nexus
 echo "run_as_user=nexus" >/home/nexus/$NEXUSDIR/bin/nexus.rc
-CONFIG_FILE=$(find /home/nexus/ -name nexus-default.properties)
-sed -i -e '/nexus.scripts.allowCreation/ d' $CONFIG_FILE
-sed -i -e '$ a nexus.scripts.allowCreation=true' $CONFIG_FILE
-pip3 install nexus3-cli &>/tmp/nexus-install.log
 
-success "Updating System Configuration"
-systemctl enable nexus &>/dev/null
+# Creating a systemd service file for Nexus
+cat <<EOF >/etc/systemd/system/nexus.service
+[Unit]
+Description=nexus service
+After=network.target
+
+[Service]
+Type=forking
+LimitNOFILE=65536
+ExecStart=/home/nexus/$NEXUSDIR/bin/nexus start
+ExecStop=/home/nexus/$NEXUSDIR/bin/nexus stop
+User=nexus
+Restart=on-abort
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Enabling and starting Nexus service
+systemctl enable nexus
 systemctl start nexus
+
 if [ $? -eq 0 ]; then
-    success "Starting Nexus Service"
+    success "Nexus Service Started Successfully"
 else
-    error "Starting Nexus Failed"
+    error "Starting Nexus Service Failed"
 fi
 
