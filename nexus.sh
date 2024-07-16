@@ -54,23 +54,21 @@ else
     success "Java already Installed"
 fi
 
-## Fetching the latest Nexus download URL
-URL="https://download.sonatype.com/nexus/3/latest-unix.tar.gz"
-NEXUSFILE=$(basename $URL)
-NEXUSDIR=$(echo $NEXUSFILE | sed -e 's/-unix.tar.gz//')
-NEXUSFILE="/opt/$NEXUSFILE"
+## Fetching the latest Nexus download URL using curl with insecure option
+URL="https://sonatype-download.global.ssl.fastly.net/repository/downloads-prod-group/3/nexus-3.70.1-02-unix.tar.gz"
+NEXUSFILE="/opt/latest-unix.tar.gz"
 
 # Debugging: Print URL and Nexus file details
 echo "Nexus download URL: $URL"
 echo "Nexus file: $NEXUSFILE"
 
-wget $URL -O $NEXUSFILE
+curl -Lk $URL -o $NEXUSFILE
 if [ $? -eq 0 ]; then
     success "NEXUS Downloaded Successfully"
 else
-    # Debugging: Print wget output for further analysis
-    echo "wget output:"
-    wget $URL -O $NEXUSFILE
+    # Debugging: Print curl output for further analysis
+    echo "curl output:"
+    curl -Lk $URL -o $NEXUSFILE
     error "NEXUS Downloading Failure"
 fi
 
@@ -86,7 +84,7 @@ if [ $? -ne 0 ]; then
 fi
 
 ## Extracting Nexus
-if [ ! -d "/home/nexus/$NEXUSDIR" ]; then
+if [ ! -d "/home/nexus/latest-unix" ]; then
     su nexus <<EOF
 cd /home/nexus
 tar xf $NEXUSFILE
@@ -100,8 +98,8 @@ fi
 
 ## Setting Nexus startup
 unlink /etc/init.d/nexus &>/dev/null
-ln -s /home/nexus/$NEXUSDIR/bin/nexus /etc/init.d/nexus
-echo "run_as_user=nexus" >/home/nexus/$NEXUSDIR/bin/nexus.rc
+ln -s /home/nexus/latest-unix/bin/nexus /etc/init.d/nexus
+echo "run_as_user=nexus" >/home/nexus/latest-unix/bin/nexus.rc
 
 # Creating a systemd service file for Nexus
 cat <<EOF >/etc/systemd/system/nexus.service
@@ -112,8 +110,8 @@ After=network.target
 [Service]
 Type=forking
 LimitNOFILE=65536
-ExecStart=/home/nexus/$NEXUSDIR/bin/nexus start
-ExecStop=/home/nexus/$NEXUSDIR/bin/nexus stop
+ExecStart=/home/nexus/latest-unix/bin/nexus start
+ExecStop=/home/nexus/latest-unix/bin/nexus stop
 User=nexus
 Restart=on-abort
 
@@ -130,4 +128,5 @@ if [ $? -eq 0 ]; then
 else
     error "Starting Nexus Service Failed"
 fi
+
 
