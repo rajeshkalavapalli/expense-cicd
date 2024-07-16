@@ -8,3 +8,7 @@ yum -y install terraform -y
 dnf module disable nodejs -y
 dnf module enable nodejs:20 -y
 dnf install nodejs -y
+
+# installing zip 
+
+yum install zip -y 
