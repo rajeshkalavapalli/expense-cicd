@@ -19,21 +19,21 @@
 
 
 #nexus
-# data "aws_ami" "nexus" {
-#   owners           = ["679593333241"]
+data "aws_ami" "nexus" {
+  owners           = ["679593333241"]
 
-#   filter {
-#     name   = "name"
-#     values = ["SolveDevOps-Nexus-Server-Ubuntu20.04-20240511-*"]
-#   }
+  filter {
+    name   = "name"
+    values = ["SolveDevOps-Nexus-Server-Ubuntu20.04-20240511-*"]
+  }
 
-#   filter {
-#     name   = "root-device-type"
-#     values = ["ebs"]
-#   }
+  filter {
+    name   = "root-device-type"
+    values = ["ebs"]
+  }
 
-#   filter {
-#     name   = "virtualization-type"
-#     values = ["hvm"]
-#   }
-# }
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+}

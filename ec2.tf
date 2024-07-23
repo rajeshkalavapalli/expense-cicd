@@ -23,10 +23,10 @@ module "nexus" {
 
   name = "nexus"
 
-  instance_type          = "t3.small"
+  instance_type          = "t3.medium"
   vpc_security_group_ids = ["sg-09ecc63e9ed970607"]
   subnet_id              = "subnet-043091cc04d94c6a7"
-  ami                    = "ami-041e2ea9402c46c32"
+  ami                    = data.aws_ami.nexus.id
   key_name = aws_key_pair.deployer.key_name
   root_block_device = [
     {
